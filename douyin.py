@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class calcSig(object):
     key1 = '57218436'
@@ -66,12 +68,35 @@ class calcSig(object):
         return ('%s&as=%s&cp=%s' % (url, sig[:18], sig[18:]))
         # return (sig[:18], sig[18:])
 
-def main():
+
+class testHTTPServer_RequestHandler(BaseHTTPRequestHandler):
+  def outputtxt(self, content):
+    self.send_response(200)
+    self.send_header('Content-type', 'application/json')
+    self.send_header('Access-Control-Allow-Origin', '*')
+    self.end_headers()
+    self.wfile.write(bytes(content, "utf-8"))
+  def do_POST(self):
+    content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
+    post_data = self.rfile.read(content_length) # <--- Gets the data itself
+    # logging.debug("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n", str(self.path), str(self.headers), post_data.decode('utf-8'))
+    # 接收到的数据
+    url = post_data.decode('utf-8')
+    # print(url)
     c = calcSig()
-    url = '/aweme/v1/comment/list/?aweme_id=6506468984865426696&cursor=0&count=20&comment_style=2&ts=1516946960&app_type=normal&os_api=23&device_type=HUAWEI NXT-AL10&device_platform=android&ssmix=a&iid=22634572655&manifest_version_code=166&dpi=480&uuid=863336037384660&version_code=166&app_name=aweme&version_name=1.6.6&openudid=3f4f9a09bd6ea55e&device_id=46408460323&resolution=1080*1812&os_version=6.0&language=zh&device_brand=HUAWEI&ac=wifi&update_version_code=1662&aid=1128&channel=aweGW&_rticket=1516946961275'
-    t = 1516946960
-    print(c.work(url,t))
+    t = int(time.time())
+    # url = '/aweme/v1/user/following/list/?_rticket=1542283051266435909&ac=wifi&aid=1128&app_name=awemechannel=360&count=20device_brand=OnePlus&device_id=59479530042&device_platform=android&device_type=ONEPLUS%2BA5000&dpi=420&iid=51242560222&language=zh&manifest_version_code=169&max_time=1541202996&openudid=5514716858105890&os_api=27&os_version=8.1.0&resolution=1080%2A1920&retry_type=no_retry&ssmix=a&update_version_code=1692&user_id=83774364341&uuid=615720636968612&version_code=169&version_name=1.6.9'
+    url = url + '&ts=' +str(t)
+    # print(url)
+    # print(c.work(url,t))
+    self.outputtxt(c.work(url,t))
 
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+  # 启动服务器
+  port = 8100
+  print('starting server, port', port)
+  # Server settings
+  server_address = ('0.0.0.0', port)
+  httpd = HTTPServer(server_address, testHTTPServer_RequestHandler)
+  print('running server...')
+  httpd.serve_forever()
